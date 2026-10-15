@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- net9.0-windows + UseWPF: Presentation ViewModel testleri RelayCommand üzerinden
+         WPF'in CommandManager'ına (WindowsBase) bağımlı; bu nedenle test barındırıcısının
+         da WindowsDesktop paylaşımlı çatısını referans alması gerekir. -->
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <!-- UseWPF, WPF'in kendi çakışan türleri (ör. System.Windows.Shapes.Path)
+         yüzünden System.IO'yu örtük using listesinden çıkarır; burada geri eklenir. -->
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Domain\BankProductImpact.Domain.csproj" />
+    <ProjectReference Include="..\..\Application\BankProductImpact.Application.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\BankProductImpact.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Presentation\BankProductImpact.Presentation.csproj" />
+  </ItemGroup>
+
+</Project>

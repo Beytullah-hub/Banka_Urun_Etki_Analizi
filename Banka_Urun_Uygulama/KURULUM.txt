@@ -1,0 +1,75 @@
+===============================================================================
+ BANKA ÜRÜN / SÜREÇ İLİŞKİ VE BİLGİ YÖNETİM UYGULAMASI
+ Taşınabilir (kurulum gerektirmeyen) paket — KURULUM NOTU
+===============================================================================
+
+BU KLASÖR NEDİR?
+  Kendi kendine yeten bir uygulamadır. Çalıştırmak için .NET, winget veya internet
+  GEREKMEZ; yalnızca Windows (x64) yeterlidir. Bu klasörün TAMAMINI kopyalayın.
+
+ÇALIŞTIRMA
+  Şu dosyaya çift tıklayın:
+      BankProductImpact.Presentation.exe
+  (Aynı klasördeki createdump.exe bir yardımcı araçtır; ona tıklamayın.)
+
+VERİTABANI DURUMU
+  Bu pakette TEMİZ bir veritabanı gelir: 31 başlık + 17 öğe kataloğu HAZIRDIR;
+  bağlantı, detay bilgisi ve işlem geçmişi yoktur. Silinen katalog kayıtları uygulama
+  yeniden açıldığında otomatik olarak geri eklenmez.
+
+-------------------------------------------------------------------------------
+ A) TEK BİLGİSAYARDA KULLANIM (varsayılan)
+-------------------------------------------------------------------------------
+  Hiçbir ayar yapmadan exe'ye çift tıklarsanız bu klasördeki
+      Data\ProductImpact.db
+  dosyası kullanılır. Bu, TEK bilgisayar içindir — her kopya kendi veritabanını
+  taşır, birbirinden bağımsızdır.
+
+-------------------------------------------------------------------------------
+ B) ORTAK (ÇOK KULLANICILI) KULLANIM — herkes AYNI veriyi görsün
+-------------------------------------------------------------------------------
+  Veritabanı, herkesin erişebildiği bir AĞ PAYLAŞIMINDA tek dosya olarak durmalı;
+  herkes o dosyayı göstermeli.
+
+  1) Data\ProductImpact.db dosyasını bir DOSYA SUNUCUSU paylaşımına kopyalayın
+     (kapanan bir kullanıcı PC'sine değil), örn:
+         \\sunucu\ortak\BankaUrunAgaci\ProductImpact.db
+
+  2) Her kullanıcıda veritabanı yolunu o paylaşıma çevirin. İKİ YOL var:
+
+     KOLAY YOL — uygulama içinden:
+        Uygulamada sağ üstteki "⚙ Ayarlar" düğmesine basın, "Yeni yol" kutusuna
+        paylaşımın yolunu yazın (veya "Gözat…" ile seçin) ve "Kaydet ve Yeniden
+        Başlat" deyin. Uygulama yeni ortak veriyle açılır.
+
+     ELLE — appsettings.json düzenleyerek:
+        {
+          "DataSource": "SQLite",
+          "DatabasePath": "\\\\sunucu\\ortak\\BankaUrunAgaci\\ProductImpact.db"
+        }
+        (JSON'da ters bölü ÇİFTLENİR.)
+
+  Bundan sonra herkes AYNI tek veriye ulaşır. Aynı anda yalnızca bir kişi düzenler
+  (tek yazıcı kilidi); diğerleri o sırada salt-okunur olur.
+
+  NOT: exe'yi (bu klasörü) her kullanıcının KENDİ YEREL diskinde tutun; yalnızca
+  veritabanı paylaşılsın. Exe'yi ağ paylaşımından çalıştırmak yavaş olur.
+
+-------------------------------------------------------------------------------
+ ÖNEMLİ — YEDEKLEME
+-------------------------------------------------------------------------------
+  Merkezi sunucu olmadığından OTOMATİK YEDEK YOKTUR. Paylaşılan ProductImpact.db
+  dosyasını düzenli olarak (ör. Görev Zamanlayıcı ile her gece) başka bir konuma
+  kopyalayın. Bozulursa tek kurtuluşunuz yedektir.
+
+-------------------------------------------------------------------------------
+ SIK SORULANLAR
+-------------------------------------------------------------------------------
+  · Değişiklik anında yansır mı? Hayır — uygulama canlı yenilemez. Biri kaydederken
+    açık olan diğerleri, görmek için başlığı yeniden seçmeli veya uygulamayı yeniden
+    açmalıdır.
+  · "Son güncelleme"deki isim? Uygulamayı çalıştıran kişinin Windows kullanıcı
+    adından otomatik gelir.
+  · Kim yazabilir kısıtı var mı? Rol/yetki YOKTUR — açan herkes düzenleyebilir.
+
+===============================================================================

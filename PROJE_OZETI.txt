@@ -1,0 +1,121 @@
+===============================================================================
+ BANKA İÇİ ÜRÜN / SÜREÇ İLİŞKİ VE BİLGİ YÖNETİM UYGULAMASI
+ Proje Özeti
+===============================================================================
+
+-------------------------------------------------------------------------------
+1) PROJE NEDİR?
+-------------------------------------------------------------------------------
+Banka içindeki ürün, işlem ve süreç BAŞLIKLARINI dinamik ağaçlar hâlinde gösteren;
+her başlığın altına ilgili ÖĞELERİ (alt işlem/ekran/süreç) bağlayabildiğiniz ve her
+bağlantı için EKRAN ADI, BATCH ADI ve KISA AÇIKLAMA bilgisini yönetebildiğiniz bir
+masaüstü uygulamasıdır.
+
+ÖNEMLİ NOT: Bu proje daha önce sayısal "ürün etki analizi" (metrik/senaryo/yüzde
+hesabı) aracıydı. O sistemin TAMAMI kaldırıldı. Amaç artık sayısal hesap değil,
+başlık–öğe ilişki haritası ve bu ilişkilere ait dokümantasyondur.
+
+Temel kavramlar:
+  · Başlık (parent) : Ağacın kökü; soldan seçilir (ör. "Repo", "Yatırım İşlemleri").
+  · Öğe (child)     : Bir başlığa bağlanan alt kalem (ör. "Raporlama", "İptal işlemi").
+  · Bağlantı        : Başlık ile öğe arasındaki bağ. Bilgi HER ZAMAN bu bağlantı
+                      bağlamında saklanır.
+
+Aynı öğe birden fazla başlığa bağlanabilir; her başlık altında AYRI bilgiye sahip
+olur (Repo→Raporlama ile Yatırım Fonu→Raporlama karışmaz). Bir node hem başlık hem
+öğe olabilir.
+
+-------------------------------------------------------------------------------
+2) TEKNOLOJİ
+-------------------------------------------------------------------------------
+  · Platform : .NET 9, C#
+  · Arayüz   : WPF + MVVM (dış MVVM kütüphanesi kullanılmadı; INotifyProperty/ICommand elle)
+  · Veri     : SQLite (Microsoft.Data.Sqlite)
+  · Test     : xUnit (89 test)
+
+-------------------------------------------------------------------------------
+3) MİMARİ — KATMANLI
+-------------------------------------------------------------------------------
+Her katman ayrı bir .NET projesidir. UI veri kaynağını TANIMAZ; yalnızca arayüzleri
+(INodeRepository, INodeDetailsRepository, IWriteLockService, IChildInformationService)
+bilir. Kurumsal veritabanına geçişte yalnızca Infrastructure'a yeni adaptör eklenir.
+
+  PRESENTATION  → WPF/MVVM: başlık seçimi, ağaç canvas'ı, öğe havuzu, bilgi paneli+form
+  APPLICATION   → servis sözleşmeleri + ChildInformationService (yükle/kaydet/doğrula/
+                  kilit/audit), WriteLockModels
+  DOMAIN        → Node, NodeRelation, NodeRelationDetails, NodeDraft (UI/SQLite bağımsız)
+  INFRASTRUCTURE→ SqliteNodeRepository, SqliteNodeDetailsRepository, SqliteWriteLockService,
+                  şema+migration, bellek-içi eşdeğerleri, dosya loglama
+
+-------------------------------------------------------------------------------
+4) VERİ KAYNAĞI — SQLite
+-------------------------------------------------------------------------------
+Varsayılan SQLite; yol appsettings.json'dan okunur:
+   { "DataSource": "SQLite", "DatabasePath": "Data/ProductImpact.db" }
+
+  · İlk açılışta veritabanı oluşturulur, NodeCatalogSeed'ten 31 BAŞLIK + 17 ÖĞE seed
+    edilir (isimler birebir; başlangıçta hiçbir öğe bağlı değildir, havuzda bekler).
+  · WAL, foreign_keys=ON, parametreli sorgu, transaction.
+  · Şema sürümlü; açılışta idempotent migration çalışır (güncel sürüm 1.6).
+  · SQLite açılamazsa uygulama düşmez; uyarı verip bellek-içi (yerleşik) veriyle devam eder.
+
+Tablolar (sürüm 1.6):
+  · Nodes               — ortak node kataloğu (CanBeRoot = başlık olabilir mi)
+  · NodeRelations       — başlık–öğe bağları (CHECK parent<>child, UNIQUE(parent,child),
+                          ağaçtan çıkarma soft-delete)
+  · NodeRelationDetails — bağlantıya özel bilgi: ScreenName, BatchName, ShortDescription
+  · ApplicationWriteLock— tek yazıcı kilidi (kısmi UNIQUE index ile tek aktif kilit)
+  · AuditLog            — kim/ne zaman/hangi işlem (eski/yeni JSON, başarı/hata)
+  · AppSettings         — şema sürümü vb.
+
+  NOT: Eski sayısal sisteme ait tablolar (Products, Metrics, Relationships, ImpactRules,
+  MetricHistory, ImpactResults, Scenarios, ScenarioResults) KALDIRILDI; migration mevcut
+  veritabanlarında bunları düşürür.
+
+-------------------------------------------------------------------------------
+5) TEK YAZICI KİLİDİ (YETKİLENDİRME DEĞİLDİR)
+-------------------------------------------------------------------------------
+Aynı anda yalnızca bir kullanıcının yazabilmesini sağlar; KİM yazabilir (rol/yetki)
+ayrımı YOKTUR. SqliteWriteLockService: BEGIN IMMEDIATE ile atomik alım, OwnerToken (GUID)
+sahip kimliği, 30 sn TTL + 10 sn heartbeat, süre aşımında yeniden alım.
+Yazma gerektiren: yeni başlık, öğe ekle/çıkar, konum değiştir, bilgi kaydet.
+Kilit gerektirmeyen: görüntüleme, hover, arama.
+
+-------------------------------------------------------------------------------
+6) ARAYÜZ
+-------------------------------------------------------------------------------
+  · SOL PANEL : başlık arama, "+ Yeni Başlık Ekle", başlık listesi.
+  · ORTA ALAN : seçili başlık merkezde, bağlı öğeler radyal dallar; düzenleme modunda
+                sürükle-taşı (konum kaydedilir), × ile ağaçtan çıkar.
+  · SAĞ PANEL : hover ile bilgi önizleme, tıklama ile sabitleme; "Bilgileri Düzenle"
+                → Ekran adı / Batch adı / Kısa açıklama (Kaydet/Vazgeç). Düzenleme
+                modunda öğe havuzu (seçerek/sürükleyerek ekle, yeni öğe).
+  · ÜST       : seçili başlık adı = pencere başlığı = merkez kutu (tek kaynak),
+                veri kaynağı rozeti, "Ağacı Düzenle" düğmesi.
+
+-------------------------------------------------------------------------------
+7) NASIL ÇALIŞTIRILIR?
+-------------------------------------------------------------------------------
+    dotnet run --project Presentation      # uygulamayı başlatır
+    dotnet test                            # 89 testi çalıştırır
+    dotnet build                           # tüm çözümü derler
+Gereksinim: .NET 9 SDK, Windows (WPF).
+
+-------------------------------------------------------------------------------
+8) BİLİNEN SINIRLAR / SONRAKİ ADIMLAR (banka üretimi öncesi)
+-------------------------------------------------------------------------------
+Aşağıdakiler kasıtlı olarak ertelendi; üretime geçmeden değerlendirilmelidir:
+  [ ] Yetkilendirme yok — herkes düzenleyebilir. Rol bazlı (görüntüleme/düzenleme)
+      erişim (ör. AD grup üyeliği) eklenmeli.
+  [ ] Migration öncesi otomatik yedek yok — şema yükseltmeleri geri alınamaz işlemler
+      içerebilir; öncesinde .db yedeği önerilir.
+  [ ] Ağ paylaşımında SQLite riski — çok kullanıcılı paylaşılan .db eşzamanlı yazımda
+      bozulabilir; kurumsal DB sunucusu (SQL Server) önerilir.
+  [ ] Denetim izi yalnızca yazılıyor — AuditLog için görüntüleme/dışa aktarma ekranı yok;
+      değiştirilemez (immutable) değil.
+
+Seed içeriği temsili/pilottur; gerçek kullanım ilgili birimlerin onayını gerektirir.
+
+===============================================================================
+ Ayrıntılı geliştirici bilgisi: Documentation/README.md
+===============================================================================

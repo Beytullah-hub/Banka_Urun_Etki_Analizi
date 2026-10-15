@@ -1,0 +1,25 @@
+# .NET derleme çıktıları
+bin/
+obj/
+*.user
+
+# Uygulama logları
+Logs/
+*.log
+
+# IDE
+.vs/
+.idea/
+
+# Üretilen Excel verisi ve yedekler
+Data/
+Backups/
+
+# Geçici dosyalar
+_screenshot*.png
+_shot*.png
+
+# Yayınlanan (self-contained) çalıştırılabilir paket — kaynak değil, derleme çıktısıdır.
+# KURULUM.txt ve appsettings.json repoda kalır; 63 MB'lık exe ve veritabanı dışlanır.
+Banka_Urun_Uygulama/*.exe
+Banka_Urun_Uygulama/createdump.exe
